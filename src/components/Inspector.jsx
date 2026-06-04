@@ -1,5 +1,6 @@
 import React from 'react';
 import { Trash2, RefreshCw } from 'lucide-react';
+import { rgbToHex, hexToRgb } from '../utils/color';
 
 export default function Inspector({
   nodes,
@@ -1154,22 +1155,4 @@ const valStyle = {
 
 
 
-// Conversions helpers
-function rgbToHex(r, g, b) {
-  const toHex = (c) => {
-    const hex = Math.round(c * 255).toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  };
-  return '#' + toHex(r) + toHex(g) + toHex(b);
-}
 
-function hexToRgb(hex) {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? [
-        parseInt(result[1], 16) / 255,
-        parseInt(result[2], 16) / 255,
-        parseInt(result[3], 16) / 255
-      ]
-    : [1, 0, 1];
-}

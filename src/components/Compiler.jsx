@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Copy, Check, FileCode, ExternalLink } from 'lucide-react';
+import { rgbToHex, hexToRgbaStr } from '../utils/color';
 
 export default function Compiler({ nodes, viscosity, dissipation, timeStep, smokeColor }) {
   const [activeTab, setActiveTab] = useState('html');
@@ -75,18 +76,8 @@ export default function Compiler({ nodes, viscosity, dissipation, timeStep, smok
       const bgOpacity = obs.cardBgOpacity !== undefined ? obs.cardBgOpacity : 0.35;
       const blurAmt = obs.cardBlur !== undefined ? obs.cardBlur : 16;
 
-      // Hex to Rgba helper for generator
-      const hexToRgba = (hex, opacity) => {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        if (!result) return `rgba(20, 16, 32, ${opacity})`;
-        const r = parseInt(result[1], 16);
-        const g = parseInt(result[2], 16);
-        const b = parseInt(result[3], 16);
-        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-      };
-
-      const bgRgba1 = hexToRgba(bgColor1, bgOpacity);
-      const bgRgba2 = hexToRgba(bgColor2, bgOpacity);
+      const bgRgba1 = hexToRgbaStr(bgColor1, bgOpacity);
+      const bgRgba2 = hexToRgbaStr(bgColor2, bgOpacity);
       const resolvedBg = obs.burner
         ? 'linear-gradient(to top, rgba(255, 0, 127, 0.18), rgba(14, 10, 24, 0.45))'
         : (bgType === 'gradient'
@@ -99,7 +90,7 @@ export default function Compiler({ nodes, viscosity, dissipation, timeStep, smok
       const borderColor = obs.cardBorderColor || '#9d4edd';
       const borderOpacity = obs.cardBorderOpacity !== undefined ? obs.cardBorderOpacity : 0.25;
       const borderRadius = obs.cardBorderRadius !== undefined ? obs.cardBorderRadius : 12;
-      const borderRgba = hexToRgba(borderColor, borderOpacity);
+      const borderRgba = hexToRgbaStr(borderColor, borderOpacity);
       const resolvedBorder = obs.burner
         ? '1px solid rgba(255, 0, 127, 0.4)'
         : (borderWidth > 0 ? `${borderWidth}px ${borderStyle} ${borderRgba}` : 'none');
@@ -130,7 +121,7 @@ export default function Compiler({ nodes, viscosity, dissipation, timeStep, smok
       const shadowBlur = obs.cardShadowBlur || obs.cardGlowIntensity || 15;
       const shadowSpread = obs.cardShadowSpread !== undefined ? obs.cardShadowSpread : 0;
 
-      const shadowRgba = hexToRgba(shadowColor, shadowOpacity);
+      const shadowRgba = hexToRgbaStr(shadowColor, shadowOpacity);
       const resolvedShadow = `${shadowX}px ${shadowY}px ${shadowBlur}px ${shadowSpread}px ${shadowRgba}, 0 10px 40px rgba(0, 0, 0, 0.6)`;
 
       const isTextType = obs.elementClass === 'text';
@@ -154,7 +145,7 @@ export default function Compiler({ nodes, viscosity, dissipation, timeStep, smok
         </div>`;
       } else {
         const headerText = obs.cardHideText ? '' : (obs.cardTitleText !== undefined ? obs.cardTitleText : (obs.label || 'Hero Header'));
-        elementHTML = `<div class="interactive-element" style="${styleStr} font-weight: ${titleWeight}; letter-spacing: ${titleLetterSpacing}px; border: none; background: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; text-shadow: ${obs.burner ? '0 0 8px #FF007F' : `0 0 8px ${hexToRgba(shadowColor, 0.4)}`};">${headerText}</div>`;
+        elementHTML = `<div class="interactive-element" style="${styleStr} font-weight: ${titleWeight}; letter-spacing: ${titleLetterSpacing}px; border: none; background: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; text-shadow: ${obs.burner ? '0 0 8px #FF007F' : `0 0 8px ${hexToRgbaStr(shadowColor, 0.4)}`};">${headerText}</div>`;
       }
       return '    ' + elementHTML;
     }).join('\n    ')}
@@ -490,11 +481,4 @@ class Canvas2DFlow {
   );
 }
 
-// Color converter
-function rgbToHex(r, g, b) {
-  const toHex = (c) => {
-    const hex = Math.round(c * 255).toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  };
-  return '#' + toHex(r) + toHex(g) + toHex(b);
-}
+

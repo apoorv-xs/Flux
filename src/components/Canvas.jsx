@@ -1,16 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { FluidSolver } from '../utils/fluidSolver';
 import { Radio, Wind, Orbit } from 'lucide-react';
-
-// Helper to convert hex to rgba string
-function hexToRgbaStr(hex, opacity) {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) return `rgba(20, 16, 32, ${opacity})`;
-  const r = parseInt(result[1], 16);
-  const g = parseInt(result[2], 16);
-  const b = parseInt(result[3], 16);
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-}
+import { hexToRgbaStr } from '../utils/color';
 
 
 export default function Canvas({
