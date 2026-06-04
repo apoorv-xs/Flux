@@ -1,16 +1,46 @@
-# React + Vite
+# FLUX // Spatial Fluid Dynamics Studio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+FLUX is a high-fidelity, interactive, WebGL-powered 2D spatial sandbox where design meets real-time fluid dynamics. Designers and developers can sketch, place, drag, and configure fluid objects (Emitters, Vortexes, Wind Tunnels) alongside pre-styled glassmorphic UI components on an infinite canvas, and compile the entire setup into standalone HTML/GLSL, React, or lightweight Canvas2D code.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Key Features
 
-## React Compiler
+*   **Real-time WebGL Solver**: Solves incompressible Navier-Stokes equations at 60fps in the browser using custom double-buffered WebGL shader pipelines.
+*   **Arbitrary Obstacle Collisions**: An offscreen Canvas2D mask automatically registers DOM elements and shapes to act as physical boundary colliders for the fluid.
+*   **Context-sensitive Spatial Gizmos**: Drag emitters, adjust wind tunnel widths/heights, and adjust direction vectors directly on the interactive blueprint canvas.
+*   **Figma-style Interaction**: Support for middle-mouse/trackpad panning, dynamic zoom centered at pointer, and precise selection grips.
+*   **Design-to-Code Exporter**: Generate production-ready layouts in one click (fully responsive HTML+GLSL template, React canvas hook, or CPU-based particle fallbacks).
+*   **Glassmorphic Design Engine**: Fine-tune backdrop blurs, double-bevel borders, gradient backplanes, content alignment, and glowing ambient drop-shadows.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Codebase Structure
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+*   `src/components/Canvas.jsx`: Grid renderer, vector handlers, dragging controllers, and SVG layers.
+*   `src/components/Inspector.jsx`: Details panel for global physics attributes, advanced emitter sweeps, and micro-design layout values.
+*   `src/components/Compiler.jsx`: Live code compiler generating stand-alone templates.
+*   `src/utils/fluidSolver.js`: Custom WebGL solver context (advection, splats, pressure Jacobi relaxations, and memory allocation cleanups).
+*   `src/utils/color.js`: Consolidated RGB, Hex, and RGBA helper libraries.
+*   `src/index.css`: Cyber-Ultraviolet design system style rules.
+
+---
+
+## ⚙️ Running Locally
+
+1.  Clone the repository and install dependencies:
+    ```bash
+    npm install
+    ```
+2.  Start the development server:
+    ```bash
+    npm run dev
+    ```
+3.  Build the production distribution:
+    ```bash
+    npm run build
+    ```
+4.  Preview the production build:
+    ```bash
+    npm run preview
+    ```
