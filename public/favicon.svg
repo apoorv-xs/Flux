@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 48 48">
+  <!-- Soft background radial glow -->
+  <circle cx="24" cy="24" r="20" fill="url(#bgGlow)" opacity="0.15" />
+  
+  <!-- Stylized dynamic waves / fluid flow lines -->
+  <path d="M 6,28 C 12,24 16,32 24,28 C 32,24 36,32 42,28" stroke="url(#cyanGlow)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M 6,20 C 12,16 16,24 24,20 C 32,16 36,24 42,20" stroke="url(#violetGlow)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <defs>
+    <!-- Cyan gradient -->
+    <linearGradient id="cyanGlow" x1="6" y1="28" x2="42" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00F0FF" />
+      <stop offset="100%" stop-color="#7000FF" />
+    </linearGradient>
+    
+    <!-- Violet gradient -->
+    <linearGradient id="violetGlow" x1="6" y1="20" x2="42" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7000FF" />
+      <stop offset="100%" stop-color="#FF007F" />
+    </linearGradient>
+    
+    <!-- Radial background glow -->
+    <radialGradient id="bgGlow" cx="24" cy="24" r="20" fx="24" fy="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00F0FF" />
+      <stop offset="100%" stop-color="#050508" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+</svg>
