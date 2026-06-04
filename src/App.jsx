@@ -14,8 +14,6 @@ import {
   Wind,
   Orbit,
   Square,
-  Sparkles,
-  Info,
   Hand,
   Minus,
   Plus

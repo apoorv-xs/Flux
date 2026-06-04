@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, ShieldAlert, Sparkles, Flame, Eye, Thermometer, Wind, RefreshCw } from 'lucide-react';
+import { Trash2, RefreshCw } from 'lucide-react';
 
 export default function Inspector({
   nodes,
