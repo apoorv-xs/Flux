@@ -1,19 +1,38 @@
-import React, { useState } from 'react';
-import { Copy, Check, FileCode, ExternalLink } from 'lucide-react';
-import { rgbToHex, hexToRgbaStr } from '../utils/color';
+import { useState } from 'react';
+import { Copy, Check, FileCode } from 'lucide-react';
+import { hexToRgbaStr } from '../utils/color';
+import { resolveCardStyles } from '../utils/cardStyles';
 
 export default function Compiler({ nodes, viscosity, dissipation, timeStep, smokeColor }) {
   const [activeTab, setActiveTab] = useState('html');
   const [copied, setCopied] = useState(false);
 
   const obstacles = nodes.filter(n => n.type === 'obstacle');
-  const colorHex = rgbToHex(smokeColor[0], smokeColor[1], smokeColor[2]);
 
-  // Copy code utility
-  const handleCopy = (codeText) => {
-    navigator.clipboard.writeText(codeText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+
+  // Copy code utility with fallback
+  const handleCopy = async (codeText) => {
+    try {
+      await navigator.clipboard.writeText(codeText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: textarea + execCommand for older browsers or non-HTTPS contexts
+      const textarea = document.createElement('textarea');
+      textarea.value = codeText;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        alert('Failed to copy to clipboard. Please copy manually.');
+      }
+      document.body.removeChild(textarea);
+    }
   };
 
   // 1. Generate Static HTML / JS Boilerplate
@@ -67,85 +86,24 @@ export default function Compiler({ nodes, viscosity, dissipation, timeStep, smok
   <!-- HTML UI Elements placed exactly over the simulation -->
   <div class="content-overlay">
     ${obstacles.map(obs => {
-      let elementHTML = '';
-      
-      const bgType = obs.cardBgType || 'solid';
-      const bgColor1 = obs.cardBgColor1 || '#141020';
-      const bgColor2 = obs.cardBgColor2 || '#0a0814';
-      const bgAngle = obs.cardBgAngle !== undefined ? obs.cardBgAngle : 135;
-      const bgOpacity = obs.cardBgOpacity !== undefined ? obs.cardBgOpacity : 0.35;
-      const blurAmt = obs.cardBlur !== undefined ? obs.cardBlur : 16;
+      let elementHTML;
+      const s = resolveCardStyles(obs);
 
-      const bgRgba1 = hexToRgbaStr(bgColor1, bgOpacity);
-      const bgRgba2 = hexToRgbaStr(bgColor2, bgOpacity);
-      const resolvedBg = obs.burner
-        ? 'linear-gradient(to top, rgba(255, 0, 127, 0.18), rgba(14, 10, 24, 0.45))'
-        : (bgType === 'gradient'
-            ? `linear-gradient(${bgAngle}deg, ${bgRgba1}, ${bgRgba2})`
-            : bgRgba1);
-
-      // Detailed Border
-      const borderWidth = obs.cardBorderWidth !== undefined ? obs.cardBorderWidth : 1;
-      const borderStyle = obs.cardBorderStyle || 'solid';
-      const borderColor = obs.cardBorderColor || '#9d4edd';
-      const borderOpacity = obs.cardBorderOpacity !== undefined ? obs.cardBorderOpacity : 0.25;
-      const borderRadius = obs.cardBorderRadius !== undefined ? obs.cardBorderRadius : 12;
-      const borderRgba = hexToRgbaStr(borderColor, borderOpacity);
-      const resolvedBorder = obs.burner
-        ? '1px solid rgba(255, 0, 127, 0.4)'
-        : (borderWidth > 0 ? `${borderWidth}px ${borderStyle} ${borderRgba}` : 'none');
-
-      // Spacing & Padding
-      const paddingX = obs.cardPaddingX !== undefined ? obs.cardPaddingX : 16;
-      const paddingY = obs.cardPaddingY !== undefined ? obs.cardPaddingY : 12;
-      const contentGap = obs.cardContentGap !== undefined ? obs.cardContentGap : 6;
-
-      // Visual Typography
-      const titleColor = obs.cardTextColor || obs.cardTitleColor || '#FFFFFF';
-      const titleSize = obs.cardFontSize || obs.cardTitleSize || 14;
-      const titleWeight = obs.cardTitleWeight || '600';
-      const titleLetterSpacing = obs.cardTitleLetterSpacing !== undefined ? obs.cardTitleLetterSpacing : 0;
-      const titleLineHeight = obs.cardTitleLineHeight !== undefined ? obs.cardTitleLineHeight : 1.2;
-
-      const subtext = obs.cardSubtext !== undefined ? obs.cardSubtext : 'Interactive Panel';
-      const subColor = obs.cardSubColor || '#C77DFF';
-      const subSize = obs.cardSubSize !== undefined ? obs.cardSubSize : 10;
-      const subWeight = obs.cardSubWeight || '400';
-      const subLetterSpacing = obs.cardSubLetterSpacing !== undefined ? obs.cardSubLetterSpacing : 0;
-
-      // Detailed Shadow (offsets)
-      const shadowColor = obs.cardShadowColor || obs.cardGlowColor || '#9d4edd';
-      const shadowOpacity = obs.cardShadowOpacity !== undefined ? obs.cardShadowOpacity : 0.4;
-      const shadowX = obs.cardShadowX !== undefined ? obs.cardShadowX : 0;
-      const shadowY = obs.cardShadowY !== undefined ? obs.cardShadowY : 0;
-      const shadowBlur = obs.cardShadowBlur || obs.cardGlowIntensity || 15;
-      const shadowSpread = obs.cardShadowSpread !== undefined ? obs.cardShadowSpread : 0;
-
-      const shadowRgba = hexToRgbaStr(shadowColor, shadowOpacity);
-      const resolvedShadow = `${shadowX}px ${shadowY}px ${shadowBlur}px ${shadowSpread}px ${shadowRgba}, 0 10px 40px rgba(0, 0, 0, 0.6)`;
-
-      const isTextType = obs.elementClass === 'text';
-      const finalBg = isTextType ? 'none' : resolvedBg;
-      const finalBorder = isTextType ? 'none' : resolvedBorder;
-      const finalShadow = isTextType ? 'none' : resolvedShadow;
-      const finalBlur = isTextType ? 'none' : `blur(${blurAmt}px)`;
-      const finalRadius = isTextType ? 0 : borderRadius;
-
-      const styleStr = `left: ${obs.x}px; top: ${obs.y}px; width: ${obs.width}px; height: ${obs.height}px; border-radius: ${finalRadius}px; background: ${finalBg}; border: ${finalBorder}; backdrop-filter: ${finalBlur}; -webkit-backdrop-filter: ${finalBlur}; box-shadow: ${finalShadow}; color: ${titleColor}; font-size: ${titleSize}px; text-align: ${obs.cardTextAlign || 'center'}; padding: ${paddingY}px ${paddingX}px;`;
+      const styleStr = `left: ${obs.x}px; top: ${obs.y}px; width: ${obs.width}px; height: ${obs.height}px; border-radius: ${s.radius}px; background: ${s.bg}; border: ${s.border}; backdrop-filter: ${s.blur}; -webkit-backdrop-filter: ${s.blur}; box-shadow: ${s.shadow}; color: ${s.titleColor}; font-size: ${s.titleSize}px; text-align: ${obs.cardTextAlign || 'center'}; padding: ${s.paddingY}px ${s.paddingX}px;`;
 
       if (obs.elementClass === 'button') {
         const btnText = obs.cardHideText ? '' : (obs.cardTitleText !== undefined ? obs.cardTitleText : (obs.label || 'Button'));
-        elementHTML = `<button class="interactive-element" style="${styleStr} font-weight: ${titleWeight}; letter-spacing: ${titleLetterSpacing}px;">${btnText}</button>`;
+        elementHTML = `<button class="interactive-element" style="${styleStr} font-weight: ${s.titleWeight}; letter-spacing: ${s.titleLetterSpacing}px;">${btnText}</button>`;
       } else if (obs.elementClass === 'card' || obs.elementClass === 'text') {
-        const titleDiv = obs.cardHideText ? '' : `<div style="font-weight: ${titleWeight}; letter-spacing: ${titleLetterSpacing}px; line-height: ${titleLineHeight}; color: ${titleColor};">${obs.cardTitleText !== undefined ? obs.cardTitleText : (obs.label || 'Panel Card')}</div>`;
-        const subtextDiv = (obs.cardHideText || !subtext) ? '' : `<div style="font-size: ${subSize}px; color: ${subColor}; font-weight: ${subWeight}; letter-spacing: ${subLetterSpacing}px;">${subtext}</div>`;
-        elementHTML = `<div class="interactive-element" style="${styleStr} flex-direction: column; justify-content: center; gap: ${contentGap}px;">
+        const titleDiv = obs.cardHideText ? '' : `<div style="font-weight: ${s.titleWeight}; letter-spacing: ${s.titleLetterSpacing}px; line-height: ${s.titleLineHeight}; color: ${s.titleColor};">${obs.cardTitleText !== undefined ? obs.cardTitleText : (obs.label || 'Panel Card')}</div>`;
+        const subtextDiv = (obs.cardHideText || !s.subtext) ? '' : `<div style="font-size: ${s.subSize}px; color: ${s.subColor}; font-weight: ${s.subWeight}; letter-spacing: ${s.subLetterSpacing}px;">${s.subtext}</div>`;
+        elementHTML = `<div class="interactive-element" style="${styleStr} flex-direction: column; justify-content: center; gap: ${s.contentGap}px;">
           ${titleDiv}
           ${subtextDiv}
         </div>`;
       } else {
         const headerText = obs.cardHideText ? '' : (obs.cardTitleText !== undefined ? obs.cardTitleText : (obs.label || 'Hero Header'));
-        elementHTML = `<div class="interactive-element" style="${styleStr} font-weight: ${titleWeight}; letter-spacing: ${titleLetterSpacing}px; border: none; background: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; text-shadow: ${obs.burner ? '0 0 8px #FF007F' : `0 0 8px ${hexToRgbaStr(shadowColor, 0.4)}`};">${headerText}</div>`;
+        elementHTML = `<div class="interactive-element" style="${styleStr} font-weight: ${s.titleWeight}; letter-spacing: ${s.titleLetterSpacing}px; border: none; background: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; text-shadow: ${obs.burner ? '0 0 8px #FF007F' : `0 0 8px ${hexToRgbaStr(obs.cardShadowColor || '#9d4edd', 0.4)}`};">${headerText}</div>`;
       }
       return '    ' + elementHTML;
     }).join('\n    ')}
@@ -307,25 +265,291 @@ export default function Compiler({ nodes, viscosity, dissipation, timeStep, smok
 
   // 2. Generate React template code
   const generateReactCode = () => {
+    const obstacleList = obstacles.map(obs => ({
+      x: obs.x, y: obs.y, w: obs.width, h: obs.height,
+      r: obs.borderRadius || 8, burner: obs.burner || false
+    }));
+
     return `import React, { useRef, useEffect } from 'react';
 
-// Copy this React component into your project to run the fluid backdrop.
-// The canvas handles coordinates, mouse interaction splats, and FBO swaps automatically.
+// Self-contained WebGL fluid backdrop component.
+// Paste this into any React project — no external dependencies needed.
 export default function FluidUIBackdrop() {
   const canvasRef = useRef(null);
-  const obstacles = ${JSON.stringify(obstacles.map(obs => ({ x: obs.x, y: obs.y, w: obs.width, h: obs.height, r: obs.borderRadius || 8, burner: obs.burner || false })))};
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const gl = canvas.getContext('webgl2', { alpha: false });
     if (!gl) return;
 
-    // WebGL initialization & shader creation...
-    // Set up double buffers, bind mouse move, draw obstacles to texture...
+    const SIM_W = 256, SIM_H = 256;
+    const VISCOSITY = ${viscosity};
+    const DISSIPATION = ${dissipation};
+    const DT = ${timeStep};
+    const COLOR = [${smokeColor.join(', ')}];
+    const OBSTACLES = ${JSON.stringify(obstacleList)};
+
+    // --- Shader Sources ---
+    const VS = \`#version 300 es
+      in vec2 position;
+      out vec2 vUv;
+      void main() { vUv = position * 0.5 + 0.5; gl_Position = vec4(position, 0.0, 1.0); }
+    \`;
+
+    const SPLAT_FS = \`#version 300 es
+      precision highp float;
+      in vec2 vUv; out vec4 fragColor;
+      uniform sampler2D uSource; uniform vec2 uPoint; uniform vec3 uColor;
+      uniform float uRadius, uAspectRatio;
+      void main() {
+        vec2 p = vUv - uPoint; p.x *= uAspectRatio;
+        fragColor = vec4(texture(uSource, vUv).xyz + uColor * exp(-dot(p,p)/uRadius), 1.0);
+      }
+    \`;
+
+    const ADVECT_FS = \`#version 300 es
+      precision highp float;
+      in vec2 vUv; out vec4 fragColor;
+      uniform sampler2D uVelocity, uSource, uObstacles;
+      uniform vec2 uTexelSize; uniform float uDt, uDissipation;
+      void main() {
+        if (texture(uObstacles, vUv).r > 0.1) { fragColor = vec4(0.0); return; }
+        vec2 coord = vUv - uDt * uTexelSize * texture(uVelocity, vUv).xy;
+        fragColor = uDissipation * texture(uSource, clamp(coord, 0.001, 0.999));
+      }
+    \`;
+
+    const DIV_FS = \`#version 300 es
+      precision highp float;
+      in vec2 vUv; out vec4 fragColor;
+      uniform sampler2D uVelocity, uObstacles; uniform vec2 uTexelSize;
+      void main() {
+        if (texture(uObstacles, vUv).r > 0.1) { fragColor = vec4(0.0); return; }
+        vec2 vL = texture(uVelocity, vUv - vec2(uTexelSize.x,0)).xy;
+        vec2 vR = texture(uVelocity, vUv + vec2(uTexelSize.x,0)).xy;
+        vec2 vB = texture(uVelocity, vUv - vec2(0,uTexelSize.y)).xy;
+        vec2 vT = texture(uVelocity, vUv + vec2(0,uTexelSize.y)).xy;
+        if (texture(uObstacles, vUv - vec2(uTexelSize.x,0)).r > 0.1) vL = -vR;
+        if (texture(uObstacles, vUv + vec2(uTexelSize.x,0)).r > 0.1) vR = -vL;
+        if (texture(uObstacles, vUv - vec2(0,uTexelSize.y)).r > 0.1) vB = -vT;
+        if (texture(uObstacles, vUv + vec2(0,uTexelSize.y)).r > 0.1) vT = -vB;
+        fragColor = vec4(0.5 * ((vR.x - vL.x) + (vT.y - vB.y)), 0.0, 0.0, 1.0);
+      }
+    \`;
+
+    const JACOBI_FS = \`#version 300 es
+      precision highp float;
+      in vec2 vUv; out vec4 fragColor;
+      uniform sampler2D uPressure, uDivergence, uObstacles; uniform vec2 uTexelSize;
+      void main() {
+        if (texture(uObstacles, vUv).r > 0.1) { fragColor = vec4(0.0); return; }
+        float pL = texture(uPressure, vUv - vec2(uTexelSize.x,0)).r;
+        float pR = texture(uPressure, vUv + vec2(uTexelSize.x,0)).r;
+        float pB = texture(uPressure, vUv - vec2(0,uTexelSize.y)).r;
+        float pT = texture(uPressure, vUv + vec2(0,uTexelSize.y)).r;
+        if (texture(uObstacles, vUv - vec2(uTexelSize.x,0)).r > 0.1) pL = pR;
+        if (texture(uObstacles, vUv + vec2(uTexelSize.x,0)).r > 0.1) pR = pL;
+        if (texture(uObstacles, vUv - vec2(0,uTexelSize.y)).r > 0.1) pB = pT;
+        if (texture(uObstacles, vUv + vec2(0,uTexelSize.y)).r > 0.1) pT = pB;
+        fragColor = vec4(0.25 * (pL + pR + pB + pT - texture(uDivergence, vUv).r), 0, 0, 1);
+      }
+    \`;
+
+    const SUB_FS = \`#version 300 es
+      precision highp float;
+      in vec2 vUv; out vec4 fragColor;
+      uniform sampler2D uVelocity, uPressure, uObstacles; uniform vec2 uTexelSize;
+      void main() {
+        if (texture(uObstacles, vUv).r > 0.1) { fragColor = vec4(0,0,0,1); return; }
+        float pL = texture(uPressure, vUv - vec2(uTexelSize.x,0)).r;
+        float pR = texture(uPressure, vUv + vec2(uTexelSize.x,0)).r;
+        float pB = texture(uPressure, vUv - vec2(0,uTexelSize.y)).r;
+        float pT = texture(uPressure, vUv + vec2(0,uTexelSize.y)).r;
+        if (texture(uObstacles, vUv - vec2(uTexelSize.x,0)).r > 0.1) pL = pR;
+        if (texture(uObstacles, vUv + vec2(uTexelSize.x,0)).r > 0.1) pR = pL;
+        if (texture(uObstacles, vUv - vec2(0,uTexelSize.y)).r > 0.1) pB = pT;
+        if (texture(uObstacles, vUv + vec2(0,uTexelSize.y)).r > 0.1) pT = pB;
+        fragColor = vec4(texture(uVelocity, vUv).xy - vec2(pR - pL, pT - pB) * 0.5, 0, 1);
+      }
+    \`;
+
+    const RENDER_FS = \`#version 300 es
+      precision highp float;
+      in vec2 vUv; out vec4 fragColor;
+      uniform sampler2D uDye, uObstacles;
+      void main() {
+        if (texture(uObstacles, vUv).r > 0.1)
+          fragColor = vec4(texture(uDye, vUv).rgb * 0.7 + vec3(0.06, 0.04, 0.1) * 0.3, 1.0);
+        else
+          fragColor = vec4(texture(uDye, vUv).rgb, 1.0);
+      }
+    \`;
+
+    // --- Helpers ---
+    const compile = (type, src) => {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      return s;
+    };
+    const link = (vs, fs) => {
+      const p = gl.createProgram();
+      gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+      gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+      gl.linkProgram(p);
+      return p;
+    };
+    const makeFBO = (w, h, ifmt, fmt, type) => {
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texImage2D(gl.TEXTURE_2D, 0, ifmt, w, h, 0, fmt, type, null);
+      const fbo = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      return { texture: tex, fbo };
+    };
+    const doubleBuf = (w, h, ifmt, fmt, type) => {
+      const a = makeFBO(w, h, ifmt, fmt, type);
+      const b = makeFBO(w, h, ifmt, fmt, type);
+      return { get read() { return a; }, get write() { return b; },
+        swap() { [a.texture, b.texture] = [b.texture, a.texture]; [a.fbo, b.fbo] = [b.fbo, a.fbo]; } };
+    };
+
+    // --- Init ---
+    gl.getExtension("EXT_color_buffer_float");
+    const prog = { splat: link(VS, SPLAT_FS), advect: link(VS, ADVECT_FS), div: link(VS, DIV_FS),
+      jacobi: link(VS, JACOBI_FS), sub: link(VS, SUB_FS), render: link(VS, RENDER_FS) };
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl.STATIC_DRAW);
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    const posLoc = gl.getAttribLocation(prog.splat, "position");
+    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+
+    const vel = doubleBuf(SIM_W, SIM_H, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT);
+    const dye = doubleBuf(SIM_W, SIM_H, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT);
+    const pressure = doubleBuf(SIM_W, SIM_H, gl.R16F, gl.RED, gl.HALF_FLOAT);
+    const divBuf = makeFBO(SIM_W, SIM_H, gl.R16F, gl.RED, gl.HALF_FLOAT);
+    const obsTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, obsTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    const obsCanvas = document.createElement("canvas");
+    obsCanvas.width = 512; obsCanvas.height = 512;
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    resize(); window.addEventListener("resize", resize);
+
+    const splat = (fbo, x, y, col, rad, asp) => {
+      gl.viewport(0, 0, SIM_W, SIM_H);
+      gl.useProgram(prog.splat);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, fbo.read.texture);
+      gl.uniform1i(gl.getUniformLocation(prog.splat, "uSource"), 0);
+      gl.uniform2f(gl.getUniformLocation(prog.splat, "uPoint"), x, y);
+      gl.uniform3f(gl.getUniformLocation(prog.splat, "uColor"), col[0], col[1], col[2]);
+      gl.uniform1f(gl.getUniformLocation(prog.splat, "uRadius"), rad);
+      gl.uniform1f(gl.getUniformLocation(prog.splat, "uAspectRatio"), asp);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo.write.fbo);
+      gl.bindVertexArray(vao); gl.drawArrays(gl.TRIANGLES, 0, 6); gl.bindVertexArray(null);
+      fbo.swap();
+    };
+
+    const mouse = { x: 0, y: 0, px: 0, py: 0, down: false, moved: false };
+    const onMove = e => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.moved = true; };
+    const onDown = () => { mouse.down = true; mouse.px = mouse.x; mouse.py = mouse.y; };
+    const onUp = () => { mouse.down = false; };
+    canvas.addEventListener("mousemove", onMove);
+    canvas.addEventListener("mousedown", onDown);
+    canvas.addEventListener("mouseup", onUp);
+
+    let raf;
+    const loop = () => {
+      const w = canvas.width, h = canvas.height, asp = w / h;
+      // Obstacle mask
+      const ctx = obsCanvas.getContext("2d");
+      ctx.fillStyle = "#000"; ctx.fillRect(0, 0, 512, 512);
+      ctx.fillStyle = "#fff";
+      OBSTACLES.forEach(o => { ctx.beginPath(); ctx.roundRect(o.x / w * 512, o.y / h * 512, o.w / w * 512, o.h / h * 512, o.r); ctx.fill(); });
+      gl.bindTexture(gl.TEXTURE_2D, obsTex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, gl.RED, gl.UNSIGNED_BYTE, obsCanvas);
+
+      // Mouse splat
+      if (mouse.down && mouse.moved) {
+        const mx = mouse.x / w, my = 1 - mouse.y / h;
+        splat(vel, mx, my, [(mouse.x - mouse.px) * 0.005, -(mouse.y - mouse.py) * 0.005, 0], 0.01, asp);
+        splat(dye, mx, my, COLOR.map(c => c * 0.06), 0.012, asp);
+        mouse.px = mouse.x; mouse.py = mouse.y; mouse.moved = false;
+      }
+
+      // Sim step
+      const tx = 1 / SIM_W, ty = 1 / SIM_H;
+      const use = (p) => gl.useProgram(p);
+      const bind3 = (p, names) => names.forEach((n, i) => { gl.activeTexture(gl.TEXTURE0 + i); gl.uniform1i(gl.getUniformLocation(p, n), i); });
+      gl.viewport(0, 0, SIM_W, SIM_H); gl.bindVertexArray(vao);
+
+      // Advect velocity
+      use(prog.advect); gl.uniform2f(gl.getUniformLocation(prog.advect, "uTexelSize"), tx, ty);
+      gl.uniform1f(gl.getUniformLocation(prog.advect, "uDt"), DT);
+      gl.uniform1f(gl.getUniformLocation(prog.advect, "uDissipation"), 1.0);
+      gl.bindTexture(gl.TEXTURE_2D, vel.read.texture); gl.uniform1i(gl.getUniformLocation(prog.advect, "uVelocity"), 0);
+      gl.bindTexture(gl.TEXTURE_2D, vel.read.texture); gl.uniform1i(gl.getUniformLocation(prog.advect, "uSource"), 1);
+      gl.bindTexture(gl.TEXTURE_2D, obsTex); gl.uniform1i(gl.getUniformLocation(prog.advect, "uObstacles"), 2);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, vel.write.fbo); gl.drawArrays(gl.TRIANGLES, 0, 6); vel.swap();
+
+      // Advect dye
+      gl.uniform1f(gl.getUniformLocation(prog.advect, "uDissipation"), DISSIPATION);
+      gl.bindTexture(gl.TEXTURE_2D, vel.read.texture); gl.uniform1i(gl.getUniformLocation(prog.advect, "uVelocity"), 0);
+      gl.bindTexture(gl.TEXTURE_2D, dye.read.texture); gl.uniform1i(gl.getUniformLocation(prog.advect, "uSource"), 1);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, dye.write.fbo); gl.drawArrays(gl.TRIANGLES, 0, 6); dye.swap();
+
+      // Divergence
+      use(prog.div); gl.uniform2f(gl.getUniformLocation(prog.div, "uTexelSize"), tx, ty);
+      gl.bindTexture(gl.TEXTURE_2D, vel.read.texture); gl.uniform1i(gl.getUniformLocation(prog.div, "uVelocity"), 0);
+      gl.bindTexture(gl.TEXTURE_2D, obsTex); gl.uniform1i(gl.getUniformLocation(prog.div, "uObstacles"), 1);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, divBuf.fbo); gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      // Jacobi pressure
+      gl.bindFramebuffer(gl.FRAMEBUFFER, pressure.read.fbo); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+      use(prog.jacobi); gl.uniform2f(gl.getUniformLocation(prog.jacobi, "uTexelSize"), tx, ty);
+      gl.bindTexture(gl.TEXTURE_2D, divBuf.texture); gl.uniform1i(gl.getUniformLocation(prog.jacobi, "uDivergence"), 1);
+      gl.bindTexture(gl.TEXTURE_2D, obsTex); gl.uniform1i(gl.getUniformLocation(prog.jacobi, "uObstacles"), 2);
+      for (let i = 0; i < 24; i++) {
+        gl.bindTexture(gl.TEXTURE_2D, pressure.read.texture); gl.uniform1i(gl.getUniformLocation(prog.jacobi, "uPressure"), 0);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, pressure.write.fbo); gl.drawArrays(gl.TRIANGLES, 0, 6); pressure.swap();
+      }
+
+      // Gradient subtract
+      use(prog.sub); gl.uniform2f(gl.getUniformLocation(prog.sub, "uTexelSize"), tx, ty);
+      gl.bindTexture(gl.TEXTURE_2D, vel.read.texture); gl.uniform1i(gl.getUniformLocation(prog.sub, "uVelocity"), 0);
+      gl.bindTexture(gl.TEXTURE_2D, pressure.read.texture); gl.uniform1i(gl.getUniformLocation(prog.sub, "uPressure"), 1);
+      gl.bindTexture(gl.TEXTURE_2D, obsTex); gl.uniform1i(gl.getUniformLocation(prog.sub, "uObstacles"), 2);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, vel.write.fbo); gl.drawArrays(gl.TRIANGLES, 0, 6); vel.swap();
+
+      // Render
+      gl.viewport(0, 0, w, h); use(prog.render); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.bindTexture(gl.TEXTURE_2D, dye.read.texture); gl.uniform1i(gl.getUniformLocation(prog.render, "uDye"), 0);
+      gl.bindTexture(gl.TEXTURE_2D, obsTex); gl.uniform1i(gl.getUniformLocation(prog.render, "uObstacles"), 1);
+      gl.drawArrays(gl.TRIANGLES, 0, 6); gl.bindVertexArray(null);
+
+      raf = requestAnimationFrame(loop);
+    };
+    loop();
+
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
   }, []);
 
   return (
-    <div style={{ position: 'absolute', width: '100%', height: '100%', zIndex: 0 }}>
+    <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
       <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
     </div>
   );
@@ -334,84 +558,160 @@ export default function FluidUIBackdrop() {
 
   // 3. Generate Lightweight Canvas 2D Fallback Code
   const generateCanvas2DCode = () => {
-    return `// Lightweight Canvas2D Particle Flow Fallback
-class Canvas2DFlow {
-  constructor(canvas) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.particles = [];
-    this.obstacles = ${JSON.stringify(obstacles.map(obs => ({ x: obs.x, y: obs.y, w: obs.width, h: obs.height, r: obs.borderRadius || 8 })))};
-    this.init();
+    const obstacleList = obstacles.map(obs => ({
+      x: obs.x, y: obs.y, w: obs.width, h: obs.height,
+      r: obs.borderRadius || 8, burner: obs.burner || false
+    }));
+    const r = Math.round(smokeColor[0] * 255);
+    const g = Math.round(smokeColor[1] * 255);
+    const b = Math.round(smokeColor[2] * 255);
+
+    return `// Canvas2D Fluid-like Particle Fallback — no WebGL required
+// Features: gravity, obstacle collision, mouse drag forces, dissipation
+(function () {
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+
+  const W = () => canvas.width;
+  const H = () => canvas.height;
+  const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+  resize();
+  window.addEventListener('resize', resize);
+
+  const OBSTACLES = ${JSON.stringify(obstacleList)};
+  const COLOR = { r: ${r}, g: ${g}, b: ${b} };
+  const MAX_PARTICLES = 600;
+
+  const particles = [];
+  const mouse = { x: 0, y: 0, px: 0, py: 0, down: false };
+
+  canvas.addEventListener('mousedown', e => { mouse.down = true; mouse.x = e.clientX; mouse.y = e.clientY; mouse.px = e.clientX; mouse.py = e.clientY; });
+  canvas.addEventListener('mouseup', () => { mouse.down = false; });
+  canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+  function spawnParticle() {
+    if (particles.length >= MAX_PARTICLES) return;
+    const side = Math.random();
+    particles.push({
+      x: Math.random() * W(),
+      y: side < 0.7 ? -10 : Math.random() * H(),
+      vx: (Math.random() - 0.5) * 2,
+      vy: 1 + Math.random() * 2,
+      life: 1.0,
+      decay: 0.002 + Math.random() * 0.004,
+      size: 2 + Math.random() * 3,
+      hue: Math.random() * 40 - 20, // slight color variation
+    });
   }
 
-  init() {
-    this.resize();
-    window.addEventListener('resize', () => this.resize());
-    this.loop();
+  function pointInRect(px, py, rx, ry, rw, rh) {
+    return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
   }
 
-  resize() {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+  function resolveCollision(p) {
+    for (const o of OBSTACLES) {
+      if (!pointInRect(p.x, p.y, o.x, o.y, o.w, o.h)) continue;
+      // Determine which edge was hit
+      const cx = o.x + o.w / 2;
+      const cy = o.y + o.h / 2;
+      const dx = p.x - cx;
+      const dy = p.y - cy;
+      if (Math.abs(dx / o.w) > Math.abs(dy / o.h)) {
+        p.vx = dx > 0 ? Math.abs(p.vx) : -Math.abs(p.vx);
+        p.x = dx > 0 ? o.x + o.w + 1 : o.x - 1;
+      } else {
+        p.vy = dy > 0 ? Math.abs(p.vy) : -Math.abs(p.vy);
+        p.y = dy > 0 ? o.y + o.h + 1 : o.y - 1;
+      }
+      // Add slight randomness to prevent stuck particles
+      p.vx += (Math.random() - 0.5) * 0.5;
+      p.vy += (Math.random() - 0.5) * 0.5;
+    }
   }
 
-  loop() {
-    this.update();
-    this.draw();
-    requestAnimationFrame(() => this.loop());
-  }
+  function loop() {
+    // Spawn
+    for (let i = 0; i < 3; i++) spawnParticle();
 
-  update() {
-    // Spawn particles
-    if (this.particles.length < 200) {
-      this.particles.push({
-        x: Math.random() * this.canvas.width,
-        y: 0,
-        vy: 2 + Math.random() * 3,
-        vx: (Math.random() - 0.5) * 0.5,
-        color: 'rgba(157, 78, 221, 0.6)'
-      });
+    // Update
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+
+      // Mouse force
+      if (mouse.down) {
+        const dx = mouse.x - mouse.px;
+        const dy = mouse.y - mouse.py;
+        const dist = Math.hypot(mouse.x - p.x, mouse.y - p.y);
+        if (dist < 120) {
+          const force = (1 - dist / 120) * 0.15;
+          p.vx += dx * force;
+          p.vy += dy * force;
+        }
+      }
+
+      // Gravity + damping
+      p.vy += 0.04;
+      p.vx *= 0.999;
+      p.vy *= 0.999;
+
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+
+      resolveCollision(p);
+
+      // Remove dead or offscreen
+      if (p.life <= 0 || p.x < -20 || p.x > W() + 20 || p.y > H() + 20 || p.y < -50) {
+        particles.splice(i, 1);
+      }
     }
 
-    // Move & Collide particles
-    this.particles.forEach(p => {
-      p.y += p.vy;
-      p.x += p.vx;
+    mouse.px = mouse.x;
+    mouse.py = mouse.y;
 
-      // Obstacle collision
-      this.obstacles.forEach(o => {
-        if (p.x >= o.x && p.x <= o.x + o.w && p.y >= o.y && p.y <= o.y + 10) {
-          // Bounce or flow around
-          p.vy = 0.5;
-          p.vx = p.x < o.x + o.w / 2 ? -2 : 2;
-        }
-      });
-    });
+    // Draw
+    // Fade trail
+    ctx.fillStyle = 'rgba(5, 5, 8, 0.12)';
+    ctx.fillRect(0, 0, W(), H());
 
-    this.particles = this.particles.filter(p => p.y < this.canvas.height);
-  }
-
-  draw() {
-    this.ctx.fillStyle = '#050508';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    
     // Draw obstacles
-    this.ctx.fillStyle = '#0e0a18';
-    this.ctx.strokeStyle = '#9d4edd';
-    this.obstacles.forEach(o => {
-      this.ctx.fillRect(o.x, o.y, o.w, o.h);
-      this.ctx.strokeRect(o.x, o.y, o.w, o.h);
+    OBSTACLES.forEach(o => {
+      ctx.fillStyle = 'rgba(14, 10, 24, 0.9)';
+      ctx.strokeStyle = 'rgba(157, 78, 221, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(o.x, o.y, o.w, o.h, o.r);
+      ctx.fill();
+      ctx.stroke();
     });
 
     // Draw particles
-    this.particles.forEach(p => {
-      this.ctx.fillStyle = p.color;
-      this.ctx.beginPath();
-      this.ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-      this.ctx.fill();
+    particles.forEach(p => {
+      const alpha = Math.max(0, p.life);
+      const cr = Math.min(255, COLOR.r + p.hue);
+      const cg = Math.max(0, Math.min(255, COLOR.g + p.hue * 0.3));
+      const cb = Math.min(255, COLOR.b + p.hue * 0.5);
+      ctx.fillStyle = \`rgba(\${cr}, \${cg}, \${cb}, \${alpha * 0.7})\`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+      ctx.fill();
     });
+
+    // Glow at mouse
+    if (mouse.down) {
+      const grad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 80);
+      grad.addColorStop(0, \`rgba(\${COLOR.r}, \${COLOR.g}, \${COLOR.b}, 0.15)\`);
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(mouse.x - 80, mouse.y - 80, 160, 160);
+    }
+
+    requestAnimationFrame(loop);
   }
-}`;
+  loop();
+})();`;
   };
 
   const getActiveCode = () => {

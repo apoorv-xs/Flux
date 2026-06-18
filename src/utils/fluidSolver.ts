@@ -214,8 +214,8 @@ void main() {
 `;
 
 // Helper: compile shader
-function compileShader(gl, type, source) {
-  const shader = gl.createShader(type);
+function compileShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
+  const shader = gl.createShader(type)!;
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
@@ -227,7 +227,7 @@ function compileShader(gl, type, source) {
 }
 
 // Helper: create program
-function createProgram(gl, vsSource, fsSource) {
+function createProgram(gl: WebGL2RenderingContext, vsSource: string, fsSource: string): WebGLProgram {
   const vs = compileShader(gl, gl.VERTEX_SHADER, vsSource);
   const fs = compileShader(gl, gl.FRAGMENT_SHADER, fsSource);
   const program = gl.createProgram();
@@ -241,7 +241,25 @@ function createProgram(gl, vsSource, fsSource) {
 }
 
 export class FluidSolver {
-  constructor(gl, simWidth = 256, simHeight = 256) {
+  gl: WebGL2RenderingContext;
+  simWidth: number;
+  simHeight: number;
+  splatProgram: WebGLProgram;
+  advectProgram: WebGLProgram;
+  divergenceProgram: WebGLProgram;
+  jacobiProgram: WebGLProgram;
+  subtractProgram: WebGLProgram;
+  renderProgram: WebGLProgram;
+  baseProgram: WebGLProgram;
+  quadBuffer: WebGLBuffer;
+  obstacleTexture: WebGLTexture;
+  velocity: ReturnType<FluidSolver['createDoubleBuffer']>;
+  dye: ReturnType<FluidSolver['createDoubleBuffer']>;
+  pressure: ReturnType<FluidSolver['createDoubleBuffer']>;
+  divergence: ReturnType<FluidSolver['createBufferObject']>;
+  vao!: WebGLVertexArrayObject;
+
+  constructor(gl: WebGL2RenderingContext, simWidth = 256, simHeight = 256) {
     this.gl = gl;
     this.simWidth = simWidth;
     this.simHeight = simHeight;
@@ -299,7 +317,7 @@ export class FluidSolver {
     this.initAttributes();
   }
 
-  createBufferObject(w, h, internalFormat, format, type) {
+  createBufferObject(w: number, h: number, internalFormat: number, format: number, type: number) {
     const gl = this.gl;
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -316,7 +334,7 @@ export class FluidSolver {
     return { texture, fbo };
   }
 
-  createDoubleBuffer(w, h, internalFormat, format, type) {
+  createDoubleBuffer(w: number, h: number, internalFormat: number, format: number, type: number) {
     const fbo1 = this.createBufferObject(w, h, internalFormat, format, type);
     const fbo2 = this.createBufferObject(w, h, internalFormat, format, type);
 
@@ -355,7 +373,7 @@ export class FluidSolver {
   }
 
   // Draw obstacles using 2D canvas mask
-  updateObstacles(canvas) {
+  updateObstacles(canvas: HTMLCanvasElement) {
     const gl = this.gl;
     gl.bindTexture(gl.TEXTURE_2D, this.obstacleTexture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
@@ -363,7 +381,7 @@ export class FluidSolver {
   }
 
   // Injects splats (dye or velocity forces)
-  splat(fbo, x, y, color, radius, aspect) {
+  splat(fbo: { read: { texture: WebGLTexture }; write: { fbo: WebGLFramebuffer }; swap(): void }, x: number, y: number, color: number[], radius: number, aspect: number) {
     const gl = this.gl;
     gl.viewport(0, 0, this.simWidth, this.simHeight);
     gl.useProgram(this.splatProgram);
@@ -387,7 +405,7 @@ export class FluidSolver {
   }
 
   // Step the simulation
-  step(dt, viscosity, dissipation, iterations = 20) {
+  step(dt: number, viscosity: number, dissipation: number, iterations = 20) {
     const gl = this.gl;
     const texelX = 1.0 / this.simWidth;
     const texelY = 1.0 / this.simHeight;
@@ -498,7 +516,7 @@ export class FluidSolver {
   }
 
   // Render fluid simulation to screen
-  render(width, height, renderMode = 0) {
+  render(width: number, height: number, renderMode = 0) {
     const gl = this.gl;
     gl.viewport(0, 0, width, height);
     gl.useProgram(this.renderProgram);
@@ -528,7 +546,7 @@ export class FluidSolver {
     const gl = this.gl;
     
     // Clear double buffers
-    const clearFBO = (fbo) => {
+    const clearFBO = (fbo: { fbo: WebGLFramebuffer }) => {
       gl.bindFramebuffer(gl.FRAMEBUFFER, fbo.fbo);
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -548,7 +566,7 @@ export class FluidSolver {
     gl.deleteTexture(this.obstacleTexture);
     gl.deleteVertexArray(this.vao);
 
-    const deleteBuffer = (fbo) => {
+    const deleteBuffer = (fbo: { texture: WebGLTexture; fbo: WebGLFramebuffer }) => {
       gl.deleteTexture(fbo.texture);
       gl.deleteFramebuffer(fbo.fbo);
     };

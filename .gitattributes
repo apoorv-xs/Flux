@@ -1,3 +1,26 @@
+# Auto-detect text files and perform LF normalization
+* text=auto
+
+# Standard text file types to explicitly enforce LF line endings
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+
+# Graphics and binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.svg text
+
+# GitHub Linguist settings
 *.js linguist-detectable=false
 *.jsx linguist-detectable=false
 *.html linguist-detectable=false

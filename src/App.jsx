@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Canvas from './components/Canvas';
 import Inspector from './components/Inspector';
 import Compiler from './components/Compiler';
@@ -37,8 +37,8 @@ export default function App() {
       type: 'obstacle',
       x: 350,
       y: 180,
-      width: 280,
-      height: 140,
+      width: 600,
+      height: 300,
       cardBorderRadius: 16,
       label: 'FLUX STUDIO',
       cardTitleText: 'FLUX STUDIO',
@@ -68,7 +68,7 @@ export default function App() {
       cardShadowY: 10,
       cardShadowBlur: 25,
       cardShadowSpread: 0,
-      collider: true,
+      collider: false,
       burner: false,
       dissolver: false,
       dissolveLevel: 0
@@ -99,7 +99,8 @@ export default function App() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Ignore hotkeys if typing in input fields
-      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') {
+      const tag = document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
         return;
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -111,11 +112,36 @@ export default function App() {
         setActiveTool('select');
       } else if (e.key.toLowerCase() === 'h') {
         setActiveTool('pan');
+      } else if (e.key.toLowerCase() === 'e') {
+        setActiveTool('add-emitter');
+      } else if (e.key.toLowerCase() === 'o') {
+        setActiveTool('add-vortex');
+      } else if (e.key.toLowerCase() === 'w') {
+        setActiveTool('add-tunnel');
+      } else if (e.key.toLowerCase() === 's') {
+        setActiveTool('add-obstacle');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedNodeId]);
+
+  // Sync smokeColor to CSS custom properties for dynamic theming
+  useEffect(() => {
+    const r = Math.round(smokeColor[0] * 255);
+    const g = Math.round(smokeColor[1] * 255);
+    const b = Math.round(smokeColor[2] * 255);
+    const root = document.documentElement;
+    root.style.setProperty('--accent-r', r);
+    root.style.setProperty('--accent-g', g);
+    root.style.setProperty('--accent-b', b);
+    root.style.setProperty('--accent-violet', `rgb(${r}, ${g}, ${b})`);
+    // Text colors: brightened version for labels/titles, dimmed for muted
+    const brighten = (v, amount) => Math.min(255, Math.round(v * amount));
+    const dim = (v, amount) => Math.max(0, Math.round(v * amount));
+    root.style.setProperty('--text-secondary', `rgb(${brighten(r, 1.15)}, ${brighten(g, 1.15)}, ${brighten(b, 1.15)})`);
+    root.style.setProperty('--text-muted', `rgb(${dim(r, 0.55)}, ${dim(g, 0.55)}, ${dim(b, 0.55)})`);
+  }, [smokeColor]);
 
   // Reset simulation trigger
   const handleResetSimulation = () => {
@@ -174,7 +200,7 @@ export default function App() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Waves size={18} style={{ color: 'var(--accent-cyan)' }} />
+          <Waves size={18} style={{ color: 'var(--accent-violet)' }} />
           <span style={{ fontWeight: 800, fontSize: '0.85rem', letterSpacing: '2px', color: '#fff' }}>
             FLUX <span style={{ color: 'var(--text-secondary)' }}>// SPATIAL FLUID DYNAMICS STUDIO</span>
           </span>
@@ -200,7 +226,7 @@ export default function App() {
             Reset Fluid
           </button>
 
-          <div style={{ height: '16px', width: '1px', background: 'rgba(157, 78, 221, 0.15)' }} />
+          <div style={{ height: '16px', width: '1px', background: 'rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.15)' }} />
 
           <button
             className={`btn-neon ${isCompilerOpen ? '' : 'secondary'}`}
@@ -374,16 +400,16 @@ export default function App() {
           transition: 'bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
-        <button 
-          className="btn-neon secondary" 
+        <button
+          className="btn-neon secondary"
           style={{ padding: '4px', width: '22px', height: '22px', justifyContent: 'center', borderRadius: '6px' }}
           onClick={() => setZoom(prev => Math.max(0.15, prev - 0.15))}
           title="Zoom Out"
         >
           <Minus size={11} />
         </button>
-        
-        <input 
+
+        <input
           type="range"
           min="0.15"
           max="4.0"
@@ -392,9 +418,9 @@ export default function App() {
           onChange={(e) => setZoom(parseFloat(e.target.value))}
           style={{ width: '80px', margin: 0, height: '4px' }}
         />
-        
-        <button 
-          className="btn-neon secondary" 
+
+        <button
+          className="btn-neon secondary"
           style={{ padding: '4px', width: '22px', height: '22px', justifyContent: 'center', borderRadius: '6px' }}
           onClick={() => setZoom(prev => Math.min(4.0, prev + 0.15))}
           title="Zoom In"
@@ -405,9 +431,9 @@ export default function App() {
         <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', minWidth: '36px', textAlign: 'right', color: 'var(--text-secondary)' }}>
           {Math.round(zoom * 100)}%
         </span>
-        
-        <div style={{ width: '1px', height: '14px', background: 'rgba(157, 78, 221, 0.15)' }} />
-        
+
+        <div style={{ width: '1px', height: '14px', background: 'rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.15)' }} />
+
         <button
           className="btn-neon secondary"
           style={{ padding: '2px 8px', fontSize: '9px', borderRadius: '6px', height: '22px' }}
